@@ -3,18 +3,18 @@
 
 cd /Users/amitrajitdas31/Developer/Coding/Dev/Projects/distributed-event-processor
 
-echo "🚀 Starting Unified Infrastructure Testing..."
+echo "Starting Unified Infrastructure Testing..."
 echo "================================================"
 
 # 1. Start all services with unified Docker Compose
-echo "📦 Starting all infrastructure and monitoring services..."
+echo "Starting all infrastructure and monitoring services..."
 make infra-up
 
-echo "⏳ Waiting for services to start..."
+echo "Waiting for services to start..."
 sleep 45
 
 # 2. Check infrastructure service health
-echo "🔍 Checking infrastructure services..."
+echo "Checking infrastructure services..."
 
 # Check Kafka
 echo "  ✓ Checking Kafka..."
