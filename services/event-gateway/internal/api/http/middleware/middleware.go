@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/eventprocessor/event-gateway/internal/config"
+	"github.com/distributed-event-processor/services/event-gateway/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"

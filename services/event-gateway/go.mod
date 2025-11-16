@@ -1,9 +1,10 @@
-module github.com/eventprocessor/event-gateway
+module github.com/distributed-event-processor/services/event-gateway
 
 go 1.24.4
 
 require (
 	github.com/IBM/sarama v1.46.0
+	github.com/distributed-event-processor/shared/proto v0.0.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/google/uuid v1.6.0
@@ -11,7 +12,11 @@ require (
 	github.com/spf13/viper v1.20.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/time v0.12.0
+	google.golang.org/grpc v1.70.0
+	google.golang.org/protobuf v1.36.8
 )
+
+replace github.com/distributed-event-processor/shared/proto => ../../shared/proto
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -67,6 +72,6 @@ require (
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241223144023-3abc09e42ca8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

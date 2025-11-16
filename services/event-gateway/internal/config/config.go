@@ -1,14 +1,20 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	Kafka     KafkaConfig     `mapstructure:"kafka"`
-	Metrics   MetricsConfig   `mapstructure:"metrics"`
-	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	Environment string           `mapstructure:"environment"`
+	Server      ServerConfig     `mapstructure:"server"`
+	GRPC        GRPCConfig       `mapstructure:"grpc"`
+	WebSocket   WebSocketConfig  `mapstructure:"websocket"`
+	Kafka       KafkaConfig      `mapstructure:"kafka"`
+	Metrics     MetricsConfig    `mapstructure:"metrics"`
+	RateLimit   RateLimitConfig  `mapstructure:"rate_limit"`
 }
 
 type ServerConfig struct {
@@ -16,6 +22,22 @@ type ServerConfig struct {
 	ReadTimeout  int    `mapstructure:"read_timeout"`
 	WriteTimeout int    `mapstructure:"write_timeout"`
 	IdleTimeout  int    `mapstructure:"idle_timeout"`
+}
+
+type GRPCConfig struct {
+	Enabled         bool   `mapstructure:"enabled"`
+	Address         string `mapstructure:"address"`
+	MaxConnections  int    `mapstructure:"max_connections"`
+	MaxConcurrent   int    `mapstructure:"max_concurrent_streams"`
+	ConnectionAge   int    `mapstructure:"max_connection_age"`
+	KeepAliveTime   int    `mapstructure:"keepalive_time"`
+	KeepAliveMinAge int    `mapstructure:"keepalive_min_age"`
+}
+
+type WebSocketConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	Path         string `mapstructure:"path"`
+	PingInterval int    `mapstructure:"ping_interval"`
 }
 
 type KafkaConfig struct {
@@ -37,10 +59,24 @@ type RateLimitConfig struct {
 }
 
 func Load() (*Config, error) {
+	viper.SetDefault("environment", "development")
+
 	viper.SetDefault("server.address", ":8090")
 	viper.SetDefault("server.read_timeout", 30)
 	viper.SetDefault("server.write_timeout", 30)
 	viper.SetDefault("server.idle_timeout", 120)
+
+	viper.SetDefault("grpc.enabled", true)
+	viper.SetDefault("grpc.address", ":9090")
+	viper.SetDefault("grpc.max_connections", 10000)
+	viper.SetDefault("grpc.max_concurrent_streams", 1000)
+	viper.SetDefault("grpc.max_connection_age", 120)
+	viper.SetDefault("grpc.keepalive_time", 10)
+	viper.SetDefault("grpc.keepalive_min_age", 5)
+
+	viper.SetDefault("websocket.enabled", false)
+	viper.SetDefault("websocket.path", "/ws")
+	viper.SetDefault("websocket.ping_interval", 30)
 
 	viper.SetDefault("kafka.brokers", []string{"localhost:9092"})
 	viper.SetDefault("kafka.topic", "events")
@@ -75,4 +111,16 @@ func Load() (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// InitLogger creates a logger based on the environment setting
+func InitLogger(environment string) (*zap.Logger, error) {
+	switch environment {
+	case "production", "prod":
+		return zap.NewProduction()
+	case "development", "dev":
+		return zap.NewDevelopment()
+	default:
+		return nil, fmt.Errorf("unknown environment: %s (expected: development, production, dev, or prod)", environment)
+	}
 }

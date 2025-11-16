@@ -1,0 +1,273 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "github.com/distributed-event-processor/shared/proto/events/v1;eventsv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// EventGateway service handles event ingestion
+service EventGateway {
+  // IngestEvent accepts a single event
+  rpc IngestEvent(IngestEventRequest) returns (IngestEventResponse);
+
+  // IngestEventBatch accepts multiple events in a single request
+  rpc IngestEventBatch(IngestEventBatchRequest) returns (IngestEventBatchResponse);
+
+  // StreamEvents establishes a bidirectional stream for real-time event ingestion
+  rpc StreamEvents(stream StreamEventRequest) returns (stream StreamEventResponse);
+
+  // ValidateEvent validates an event without persisting it (dry-run)
+  rpc ValidateEvent(ValidateEventRequest) returns (ValidateEventResponse);
+
+  // HealthCheck returns the health status of the gateway
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Event represents a single event in the system
+message Event {
+  // Unique identifier for the event (optional, will be generated if not provided)
+  string id = 1;
+
+  // Event type (e.g., "user.created", "order.placed")
+  string type = 2;
+
+  // Source system or service that generated the event
+  string source = 3;
+
+  // Tenant ID for multi-tenancy support
+  string tenant_id = 4;
+
+  // Event payload as flexible JSON structure
+  google.protobuf.Struct data = 5;
+
+  // Event timestamp (if not provided, server will set it)
+  google.protobuf.Timestamp timestamp = 6;
+
+  // Schema version for the event data
+  string schema_version = 7;
+
+  // Optional metadata as key-value pairs
+  map<string, string> metadata = 8;
+
+  // Correlation ID for tracing related events
+  string correlation_id = 9;
+
+  // Priority level (0-10, higher is more important)
+  int32 priority = 10;
+}
+
+// IngestEventRequest for single event ingestion
+message IngestEventRequest {
+  Event event = 1;
+
+  // Whether to wait for Kafka acknowledgment
+  bool wait_for_ack = 2;
+}
+
+// IngestEventResponse for single event ingestion
+message IngestEventResponse {
+  // Event ID assigned by the system
+  string event_id = 1;
+
+  // Request ID for tracing
+  string request_id = 2;
+
+  // Timestamp when the event was accepted
+  google.protobuf.Timestamp accepted_at = 3;
+
+  // Kafka partition the event was sent to
+  int32 partition = 4;
+
+  // Kafka offset assigned to the event
+  int64 offset = 5;
+
+  // Status of the ingestion
+  IngestionStatus status = 6;
+
+  // Optional error message if ingestion failed
+  string error_message = 7;
+}
+
+// IngestEventBatchRequest for batch ingestion
+message IngestEventBatchRequest {
+  repeated Event events = 1;
+
+  // Whether to wait for Kafka acknowledgment for all events
+  bool wait_for_ack = 2;
+
+  // Whether to stop processing on first error (default: false, continue with remaining)
+  bool fail_fast = 3;
+}
+
+// IngestEventBatchResponse for batch ingestion
+message IngestEventBatchResponse {
+  // Results for each event in the batch (same order as request)
+  repeated IngestEventResponse results = 1;
+
+  // Total number of successfully ingested events
+  int32 success_count = 2;
+
+  // Total number of failed events
+  int32 failure_count = 3;
+
+  // Request ID for tracing
+  string request_id = 4;
+
+  // Total processing time in milliseconds
+  int64 processing_time_ms = 5;
+}
+
+// StreamEventRequest for bidirectional streaming
+message StreamEventRequest {
+  oneof message {
+    // Event to ingest
+    Event event = 1;
+
+    // Keep-alive ping
+    Ping ping = 2;
+
+    // Stream configuration
+    StreamConfig config = 3;
+  }
+}
+
+// StreamEventResponse for bidirectional streaming
+message StreamEventResponse {
+  oneof message {
+    // Acknowledgment for ingested event
+    IngestEventResponse ack = 1;
+
+    // Keep-alive pong
+    Pong pong = 2;
+
+    // Server-side error or info
+    StreamStatus status = 3;
+  }
+}
+
+// Ping message for keep-alive
+message Ping {
+  google.protobuf.Timestamp timestamp = 1;
+}
+
+// Pong response for keep-alive
+message Pong {
+  google.protobuf.Timestamp timestamp = 1;
+}
+
+// Stream configuration
+message StreamConfig {
+  // Enable compression
+  bool enable_compression = 1;
+
+  // Batch size for buffering (0 = no buffering)
+  int32 batch_size = 2;
+
+  // Flush interval in milliseconds
+  int32 flush_interval_ms = 3;
+}
+
+// Stream status message
+message StreamStatus {
+  StatusCode code = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// ValidateEventRequest for dry-run validation
+message ValidateEventRequest {
+  Event event = 1;
+
+  // Whether to validate against schema registry
+  bool validate_schema = 2;
+}
+
+// ValidateEventResponse for dry-run validation
+message ValidateEventResponse {
+  // Whether the event is valid
+  bool is_valid = 1;
+
+  // Validation errors if any
+  repeated ValidationError errors = 2;
+
+  // Warnings that don't prevent ingestion
+  repeated string warnings = 3;
+
+  // Request ID for tracing
+  string request_id = 4;
+}
+
+// ValidationError represents a validation failure
+message ValidationError {
+  // Field path that failed validation
+  string field = 1;
+
+  // Error message
+  string message = 2;
+
+  // Error code
+  string code = 3;
+}
+
+// HealthCheckRequest for health checks
+message HealthCheckRequest {
+  // Whether to include detailed component status
+  bool detailed = 1;
+}
+
+// HealthCheckResponse for health checks
+message HealthCheckResponse {
+  // Overall service status
+  ServiceStatus status = 1;
+
+  // Service version
+  string version = 2;
+
+  // Component health details (if detailed=true)
+  map<string, ComponentHealth> components = 3;
+
+  // Server timestamp
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// ComponentHealth represents the health of a specific component
+message ComponentHealth {
+  HealthStatus status = 1;
+  string message = 2;
+  google.protobuf.Timestamp last_check = 3;
+  map<string, string> details = 4;
+}
+
+// Enums
+
+enum IngestionStatus {
+  INGESTION_STATUS_UNSPECIFIED = 0;
+  INGESTION_STATUS_ACCEPTED = 1;
+  INGESTION_STATUS_QUEUED = 2;
+  INGESTION_STATUS_FAILED = 3;
+  INGESTION_STATUS_REJECTED = 4;
+}
+
+enum ServiceStatus {
+  SERVICE_STATUS_UNSPECIFIED = 0;
+  SERVICE_STATUS_HEALTHY = 1;
+  SERVICE_STATUS_DEGRADED = 2;
+  SERVICE_STATUS_UNHEALTHY = 3;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_UP = 1;
+  HEALTH_STATUS_DOWN = 2;
+  HEALTH_STATUS_DEGRADED = 3;
+}
+
+enum StatusCode {
+  STATUS_CODE_UNSPECIFIED = 0;
+  STATUS_CODE_OK = 1;
+  STATUS_CODE_ERROR = 2;
+  STATUS_CODE_WARNING = 3;
+  STATUS_CODE_INFO = 4;
+}

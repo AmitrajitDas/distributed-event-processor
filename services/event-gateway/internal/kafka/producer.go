@@ -1,13 +1,14 @@
 package kafka
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/eventprocessor/event-gateway/internal/config"
-	"github.com/eventprocessor/event-gateway/internal/models"
+	"github.com/distributed-event-processor/services/event-gateway/internal/config"
+	"github.com/distributed-event-processor/services/event-gateway/internal/models"
 	"go.uber.org/zap"
 )
 
@@ -42,11 +43,19 @@ func NewProducer(cfg config.KafkaConfig) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) SendEvent(event *models.Event) error {
+// ProduceEvent sends an event to Kafka with context support and returns partition and offset
+func (p *Producer) ProduceEvent(ctx context.Context, event *models.Event) (int32, int64, error) {
+	// Check context cancellation before proceeding
+	select {
+	case <-ctx.Done():
+		return 0, 0, ctx.Err()
+	default:
+	}
+
 	// Serialize event to JSON
 	eventData, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("failed to serialize event: %w", err)
+		return 0, 0, fmt.Errorf("failed to serialize event: %w", err)
 	}
 
 	// Create Kafka message
@@ -77,7 +86,7 @@ func (p *Producer) SendEvent(event *models.Event) error {
 		p.logger.Error("Failed to send event to Kafka",
 			zap.String("event_id", event.ID),
 			zap.Error(err))
-		return fmt.Errorf("failed to send event to Kafka: %w", err)
+		return 0, 0, fmt.Errorf("failed to send event to Kafka: %w", err)
 	}
 
 	p.logger.Debug("Event sent to Kafka",
@@ -86,7 +95,12 @@ func (p *Producer) SendEvent(event *models.Event) error {
 		zap.Int32("partition", partition),
 		zap.Int64("offset", offset))
 
-	return nil
+	return partition, offset, nil
+}
+
+func (p *Producer) SendEvent(event *models.Event) error {
+	_, _, err := p.ProduceEvent(context.Background(), event)
+	return err
 }
 
 func (p *Producer) SendBatchEvents(events []*models.Event) error {
