@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/eventprocessor/event-gateway/internal/kafka"
-	"github.com/eventprocessor/event-gateway/internal/models"
+	"github.com/distributed-event-processor/services/event-gateway/internal/kafka"
+	"github.com/distributed-event-processor/services/event-gateway/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
