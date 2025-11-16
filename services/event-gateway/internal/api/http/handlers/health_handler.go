@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/eventprocessor/event-gateway/internal/models"
+	"github.com/distributed-event-processor/services/event-gateway/internal/models"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
