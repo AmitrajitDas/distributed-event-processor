@@ -8,14 +8,18 @@ import (
 
 // Event represents an incoming event
 type Event struct {
-	ID        string                 `json:"id" validate:"required"`
-	Type      string                 `json:"type" validate:"required"`
-	Source    string                 `json:"source" validate:"required"`
-	Subject   string                 `json:"subject,omitempty"`
-	Data      map[string]interface{} `json:"data" validate:"required"`
-	Timestamp time.Time              `json:"timestamp"`
-	Version   string                 `json:"version,omitempty"`
-	Metadata  map[string]string      `json:"metadata,omitempty"`
+	ID            string                 `json:"id" validate:"required"`
+	Type          string                 `json:"type" validate:"required"`
+	Source        string                 `json:"source" validate:"required"`
+	Subject       string                 `json:"subject,omitempty"`
+	TenantID      string                 `json:"tenant_id,omitempty"`
+	Data          map[string]interface{} `json:"data" validate:"required"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Version       string                 `json:"version,omitempty"`
+	SchemaVersion string                 `json:"schema_version,omitempty"`
+	Metadata      map[string]string      `json:"metadata,omitempty"`
+	CorrelationID string                 `json:"correlation_id,omitempty"`
+	Priority      int                    `json:"priority,omitempty"`
 }
 
 // EventRequest represents the request payload for event ingestion
