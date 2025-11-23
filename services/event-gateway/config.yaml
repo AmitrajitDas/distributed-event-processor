@@ -7,6 +7,22 @@ server:
   write_timeout: 30 # seconds
   idle_timeout: 120 # seconds
 
+# gRPC configuration
+grpc:
+  enabled: true
+  address: ":50051" # Changed from :9090 to avoid Prometheus conflict
+  max_connections: 10000
+  max_concurrent_streams: 1000
+  max_connection_age: 120 # seconds
+  keepalive_time: 10 # seconds
+  keepalive_min_age: 5 # seconds
+
+# WebSocket configuration
+websocket:
+  enabled: false
+  path: "/ws"
+  ping_interval: 30 # seconds
+
 # Kafka configuration
 kafka:
   brokers:
