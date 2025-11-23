@@ -77,8 +77,11 @@ func main() {
 			zap.Bool("enabled", cfg.GRPC.Enabled))
 
 		if err := grpcSrv.Start(); err != nil {
+			logger.Error("gRPC server failed to start", zap.Error(err))
 			grpcErrChan <- err
 		}
+
+		close(grpcErrChan)
 	}()
 
 	// Wait for interrupt signal or gRPC error
@@ -89,7 +92,9 @@ func main() {
 	case <-quit:
 		logger.Info("Received shutdown signal")
 	case err := <-grpcErrChan:
-		logger.Error("gRPC server error", zap.Error(err))
+		if err != nil {
+        	logger.Error("gRPC server error", zap.Error(err))
+    	}
 	}
 
 	logger.Info("Shutting down Event Gateway...")
