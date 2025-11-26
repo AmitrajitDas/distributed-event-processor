@@ -40,7 +40,7 @@ func main() {
 		zap.String("version", "1.0.0"))
 
 	// Initialize Kafka producer
-	kafkaProducer, err := kafka.NewProducer(cfg.Kafka)
+	kafkaProducer, err := kafka.NewProducer(cfg.Kafka, logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize Kafka producer", zap.Error(err))
 	}
