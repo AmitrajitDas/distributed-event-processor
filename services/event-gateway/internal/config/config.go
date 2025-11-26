@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -97,6 +98,7 @@ func Load() (*Config, error) {
 
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("GATEWAY")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		// Config file not found, use defaults
