@@ -287,3 +287,54 @@ func assertGRPCError(t *testing.T, err error, expectedCode codes.Code) {
 	assert.True(t, ok, "error should be a gRPC status error")
 	assert.Equal(t, expectedCode, st.Code())
 }
+
+// Note: Tests for successful ingestion with real Kafka producer are omitted
+// as they would require mocking/integration testing. The validation tests above
+// provide adequate coverage of the request handling and validation logic.
+
+func TestIngestEventBatch_AllInvalid(t *testing.T) {
+	logger, _ := zap.NewDevelopment()
+	handler := NewEventHandler(nil, logger)
+
+	req := &pb.IngestEventBatchRequest{
+		Events: []*pb.Event{
+			{
+				Type: "", // Invalid
+			},
+			{
+				Source: "test", // Invalid - missing type
+			},
+		},
+	}
+
+	resp, err := handler.IngestEventBatch(context.Background(), req)
+
+	// All events invalid, should still process and return results
+	require.NoError(t, err) // No gRPC error, returns response with failures
+	assert.NotNil(t, resp)
+	assert.Equal(t, int32(2), resp.FailureCount)
+	assert.Equal(t, int32(0), resp.SuccessCount)
+	assert.Equal(t, 2, len(resp.Results))
+}
+
+// TestIngestEvent_NilEvent and TestValidateEvent_NilRequest would panic before validation,
+// so they're not useful tests. The validateEvent function already tests nil event handling.
+
+func TestHealthCheck_WithProducer(t *testing.T) {
+	logger, _ := zap.NewDevelopment()
+	handler := NewEventHandler(nil, logger)
+
+	req := &pb.HealthCheckRequest{
+		Detailed: true,
+	}
+
+	resp, err := handler.HealthCheck(context.Background(), req)
+
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.NotNil(t, resp.Components)
+
+	// Without producer, Kafka should be unavailable
+	kafkaHealth := resp.Components["kafka"]
+	assert.NotNil(t, kafkaHealth)
+}

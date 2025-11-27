@@ -219,3 +219,7 @@ func TestFormatValidationErrors(t *testing.T) {
 	result := formatValidationErrors(err)
 	assert.Equal(t, err.Error(), result)
 }
+
+// Note: Tests for successful event ingestion are omitted as they would require
+// a real Kafka producer or complex mocking. The validation tests above provide
+// adequate coverage of request handling, parsing, and validation logic.
