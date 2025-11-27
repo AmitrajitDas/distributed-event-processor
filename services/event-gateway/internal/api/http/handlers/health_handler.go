@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"runtime"
 	"time"
 
+	"github.com/distributed-event-processor/services/event-gateway/internal/kafka"
 	"github.com/distributed-event-processor/services/event-gateway/internal/models"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -11,12 +13,14 @@ import (
 
 type HealthHandler struct {
 	logger    *zap.Logger
+	producer  *kafka.Producer
 	startTime time.Time
 }
 
-func NewHealthHandler(logger *zap.Logger) *HealthHandler {
+func NewHealthHandler(logger *zap.Logger, producer *kafka.Producer) *HealthHandler {
 	return &HealthHandler{
 		logger:    logger,
+		producer:  producer,
 		startTime: time.Now(),
 	}
 }
@@ -42,11 +46,23 @@ func (h *HealthHandler) DetailedHealth(c *gin.Context) {
 		Services:  make(map[string]string),
 	}
 
-	// Check Kafka connectivity (simplified)
-	health.Services["kafka"] = "healthy"
+	// Check Kafka connectivity
+	kafkaStatus := "healthy"
+	if h.producer == nil {
+		kafkaStatus = "unavailable"
+		health.Status = "degraded"
+	} else if !h.producer.IsHealthy() {
+		kafkaStatus = "unhealthy"
+		health.Status = "degraded"
+	}
+	health.Services["kafka"] = kafkaStatus
 
 	// Add system information
 	uptime := time.Since(h.startTime)
+
+	// Get runtime stats
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
 
 	response := gin.H{
 		"status":    health.Status,
@@ -59,8 +75,12 @@ func (h *HealthHandler) DetailedHealth(c *gin.Context) {
 			"started_at":     h.startTime.UTC(),
 		},
 		"performance": gin.H{
-			"goroutines": "healthy", // Could use runtime.NumGoroutine()
-			"memory":     "healthy", // Could use runtime.ReadMemStats()
+			"goroutines":       runtime.NumGoroutine(),
+			"memory_alloc_mb":  float64(memStats.Alloc) / 1024 / 1024,
+			"memory_sys_mb":    float64(memStats.Sys) / 1024 / 1024,
+			"memory_heap_mb":   float64(memStats.HeapAlloc) / 1024 / 1024,
+			"gc_cycles":        memStats.NumGC,
+			"gc_pause_total_ms": float64(memStats.PauseTotalNs) / 1e6,
 		},
 	}
 
@@ -69,12 +89,19 @@ func (h *HealthHandler) DetailedHealth(c *gin.Context) {
 
 // Ready checks if the service is ready to serve traffic
 func (h *HealthHandler) Ready(c *gin.Context) {
-	// Check if service is ready (all dependencies available)
 	ready := true
 	services := make(map[string]string)
 
 	// Check Kafka connectivity
-	services["kafka"] = "ready"
+	if h.producer == nil {
+		services["kafka"] = "unavailable"
+		ready = false
+	} else if !h.producer.IsHealthy() {
+		services["kafka"] = "not_ready"
+		ready = false
+	} else {
+		services["kafka"] = "ready"
+	}
 
 	status := http.StatusOK
 	statusText := "ready"

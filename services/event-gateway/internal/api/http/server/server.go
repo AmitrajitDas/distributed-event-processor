@@ -14,6 +14,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultRequestTimeout = 30 * time.Second
+
 type Server struct {
 	config   *config.Config
 	producer *kafka.Producer
@@ -51,11 +53,21 @@ func (s *Server) setupMiddleware() {
 	// Request ID middleware
 	s.router.Use(middleware.RequestID())
 
+	// Security headers middleware
+	s.router.Use(middleware.Security())
+
 	// Logging middleware
 	s.router.Use(middleware.Logger(s.logger))
 
 	// CORS middleware
 	s.router.Use(middleware.CORS())
+
+	// Timeout middleware
+	timeout := time.Duration(s.config.Server.WriteTimeout) * time.Second
+	if timeout == 0 {
+		timeout = defaultRequestTimeout
+	}
+	s.router.Use(middleware.Timeout(timeout))
 
 	// Rate limiting middleware
 	s.router.Use(middleware.RateLimit(s.config.RateLimit))
@@ -70,7 +82,7 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	// Create handlers
 	eventHandler := handlers.NewEventHandler(s.producer, s.logger)
-	healthHandler := handlers.NewHealthHandler(s.logger)
+	healthHandler := handlers.NewHealthHandler(s.logger, s.producer)
 
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")

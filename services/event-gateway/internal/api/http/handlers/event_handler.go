@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/distributed-event-processor/services/event-gateway/internal/kafka"
 	"github.com/distributed-event-processor/services/event-gateway/internal/models"
@@ -167,7 +168,7 @@ func (h *EventHandler) IngestBatch(c *gin.Context) {
 		event.Metadata["request_id"] = getRequestID(c)
 		event.Metadata["client_ip"] = c.ClientIP()
 		event.Metadata["user_agent"] = c.GetHeader("User-Agent")
-		event.Metadata["batch_index"] = string(rune(i))
+		event.Metadata["batch_index"] = strconv.Itoa(i)
 
 		events = append(events, event)
 		response.Results[i] = models.BatchEventResult{
@@ -226,7 +227,7 @@ func (h *EventHandler) ValidateEvent(c *gin.Context) {
 
 	// Validate request
 	if err := h.validator.Struct(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"valid":      false,
 			"error":      "validation_failed",
 			"message":    "Event validation failed",
