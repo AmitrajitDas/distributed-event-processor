@@ -227,7 +227,7 @@ func (h *EventHandler) ValidateEvent(c *gin.Context) {
 
 	// Validate request
 	if err := h.validator.Struct(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"valid":      false,
 			"error":      "validation_failed",
 			"message":    "Event validation failed",
