@@ -1,0 +1,43 @@
+# Stream Processor Configuration
+
+# Environment: development, production
+environment: development
+
+# Kafka configuration
+kafka:
+  brokers:
+    - "localhost:9092"
+    - "kafka:29092" # Docker internal network
+  topic: "events"
+  consumer_group: "stream-processor"
+  auto_commit: false # Manual commit for exactly-once semantics
+  start_offset: "latest" # earliest, latest
+
+# Redis configuration
+redis:
+  address: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+  max_retries: 3
+
+# Processing configuration
+processing:
+  workers: 4
+  window_type: "tumbling" # tumbling, sliding, session
+  window_size: 300 # 5 minutes (in seconds)
+  window_slide: 60 # 1 minute (for sliding windows)
+  session_gap: 600 # 10 minutes (for session windows)
+  watermark_delay: 10 # 10 seconds
+  max_out_of_order: 60 # 1 minute
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 9091
+  path: "/metrics"
+
+# Health check configuration
+health:
+  port: 8091
+  path: "/health"
